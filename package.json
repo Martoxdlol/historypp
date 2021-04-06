@@ -1,0 +1,15 @@
+{
+  "name": "historypp",
+  "version": "0.0.1",
+  "description": "Advanced replacement to native window.history with extra functionas and custom navigation flow.",
+  "main": "dist/history-plus.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "history",
+    "web"
+  ],
+  "author": "Tomás Cichero <martoxdlol@gmail.com>",
+  "license": "ISC"
+}
