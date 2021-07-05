@@ -9,7 +9,7 @@
     "dev": "webpack serve --config webpack.dev.config.js",
     "prod": "webpack"
   },
-  "repository": "https://github.com/Martoxdlol/dialogspp",
+  "repository": "https://github.com/Martoxdlol/historypp",
   "keywords": [
     "history",
     "web"
