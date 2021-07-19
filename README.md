@@ -1,118 +1,74 @@
-History Plus Plus
-=================
 
-This module serves as a replacement for Chrome's native history api.
+# History Plus Plus
 
-```javascript
-import { createHistory } from 'historypp'
-const historypp = createHistory(history)
+## History
 
-//or
+* `history.push(routePath, state?, options?)`
+* `history.push(routePath, state?, options?)`
+* `history.back()` go back
+* `history.forward()` go forward
+* `history.go(n)` go back or forward n or -n times
+* `history.pop(pos)` removes route from position
+* `history.get(pos)` get route from position
+* `history.insert(pos, routePath, state?, options?)` insert route into position
+* `history.insertAndGo(pos, routePath, state?, options?)` insert route and navigate to
+* `history.insertReplace(pos, routePath, state?, options?)` insert route replacement
+* `history.insertReplaceAndGo(pos, routePath, state?, options?)` insert route replacement and navigate to
+* `history.position` actual history position
+* `history.list` history routes list
+* `history.last` history routes list last element
+* `history.length` history routes list length
+* `history.actual` actual route
+* `history.url` actual route url
+* `history.state` actual route state (any data)
+* `history.url` actual route url (and actual page url)
+* `history.pathname` route url pathname
+* `history.search` actual route url search
+* `history.hash` actual route url hash
 
-const historypp = initHistoryPlusPlus(history) //global function
 
-```
+## Event
 
-# History stack or list
+* `event.action` navigate | push | forward | backward | insert | pop | replace
+* `event.movement` route position difference (only on push or navigate events)
+* `event.position` actual position or affected position (like pop event)
+* `event.lastPosition` previos position  (only on push or navigate events)
+* `event.last` previous route
+* `event.route` actual route  (push or navigate events)
+* `event.isNewRoute` true when pushed new route
+* `event.cancel()`
+* `event.setState(state)` works only on push event
+* `event.setOptions(options)` works only on push event
 
-`historypp.position //value from: 0 - 2`
+## Events
 
-`historypp.list //list of pages navigated: [{...},{...},{...}]`
+`locationchange`
+`replace`
+`pop`
+`push`
+`insert`
+`exit`
 
-HistoryPP stores navigation list on history.list, you can go forwad and backward throw the list
-with total freedom. Also you cand modify the list and the navigation won't break
 
-# methods
+## Route
 
-```javascript
-historypp.navigate(url[,options,state]) //url can be relative or absolute.
-//The state will be saved on historypp.list[position].state
-//You can get the state with historypp.state or historypp.getActualData().state
+* `route.state` route state (any data)
+* `route.url` route url
+* `route.pathname` route url pathname
+* `route.search` route url search
+* `route.query` route url search params
+* `route.hash` route url hash
+* `route.position` position on history
+* `route.next` next route
+* `route.prev` previous route
 
-historypp.getActualData() //Returns list item from actual position
+### Route options
+* `title` changes document.title if history option `useTitle` toggled on
+* `popOnBack` destroys route on back from there (launches event)
+* `popOnForward` destroys route on forward from there (launches event)
 
-historypp.back()
+## Options
 
-historypp.forward()
-
-historypp.navigateReplace(url[,options,state]) //Navigate one as normal and then deletes previous item
-//and does historypp.position--
-//Also launches 'splice' event
-
-historypp.navigatePopOnBack(url[,options,state]) //When navigated back from a page pushed with this method
-//it's item on list gets removed
-//Also launches 'splice' event
-
-preventBackOnce(url,callback)// returns: {cancel:[function: cancel]} //it doesn't create a item on list but creates a listener that
-//calls callback when back button clicked and remove the listener
-//It can be cancelled
-//It doesn't affect historypp.url getter
-
-historypp.addEventListenr(name, callback)
-
-historypp.removeEventListenr(name, callback)
-
-/// GETTERS
-
-historypp.length
-
-historypp.url
-
-historypp.state
-
-/// SETTERS
-
-historypp.state
-```
-
-# One time back listener (preventBackOnce)
-
-```javascript
-const listener = historypp.preventBackOnce(() => {
-    console.log("clicked back!")
-})
-
-listener.cancel()
-
-```
-
-# Events
-
-```javascript
-historypp.addEventListenr('locationchanged', item => {
-    console.log(item.position)
-    console.log(item.type)
-    console.log(item.movement)
-    console.log(item.state)
-    console.log(item.url)
-})
-
-historypp.addEventListenr('forward', item => {
-    console.log(item.position)
-    console.log(item.type)
-    console.log(item.movement)
-    console.log(item.state)
-    console.log(item.url)
-})
-
-historypp.addEventListenr('back', item => {
-    console.log(item.position)
-    console.log(item.type)
-    console.log(item.movement)
-    console.log(item.state)
-    console.log(item.url)
-})
-
-historypp.addEventListenr('hashchange', item => {
-    console.log(item.newhash)
-    console.log(item.lasthash)
-    //When hash changed but not navigated it launches this event
-})
-
-historypp.addEventListenr('splice', item => {
-    console.log(item.start)
-    console.log(item.length)
-    someCopyOfHistoryList.splice(item.start, item.length) //Check historypp-react-router
-})
-
-```
+* `bool: options.useHashRouter = false` routes will be like `#!/route_path`
+* `bool: options.ignoreHashChange = true` history won't keep any track of hash changes
+* `bool: options.useTitle = false` change document.title depending on routes

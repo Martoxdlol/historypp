@@ -1,18 +1,19 @@
 {
   "name": "historypp",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Advanced replacement to native window.history with extra functionas and custom navigation flow.",
-  "main": "dist/history-plus.js",
+  "main": "dist/historypp.js",
   "scripts": {
     "install": "echo History Plus Plus",
     "build-dev": "webpack --config webpack.dev.config.js",
     "dev": "webpack serve --config webpack.dev.config.js",
     "prod": "webpack"
   },
-  "repository": "https://github.com/Martoxdlol/dialogspp",
+  "repository": "https://github.com/Martoxdlol/historypp",
   "keywords": [
     "history",
-    "web"
+    "web",
+    "navigation keys"
   ],
   "author": "Tomás Cichero <martoxdlol@gmail.com>",
   "license": "ISC",
@@ -31,16 +32,9 @@
     "@babel/plugin-transform-runtime": "^7.12.10",
     "@babel/plugin-transform-template-literals": "^7.12.1",
     "@babel/preset-env": "^7.12.11",
-    "@babel/preset-react": "^7.12.10",
     "babel-loader": "^8.2.2",
-    "css-loader": "^5.0.1",
-    "extract-css-chunks-webpack-plugin": "^4.9.0",
-    "mini-css-extract-plugin": "^1.3.4",
     "webpack": "^5.13.0",
     "webpack-cli": "^4.3.1",
-    "webpack-dev-server": "^3.11.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "historypp": "^0.0.x"
+    "webpack-dev-server": "^3.11.2"
   }
 }

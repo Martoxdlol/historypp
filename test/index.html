@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HistoryPP TEST</title>
+    <style media="screen">
+      *{
+        font-family: 'Helvetica';
+      }
+      h2{
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <main></main>
+      <h1 id="title">History Plus Plus</h1>
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+    <!-- <script src="https://martoxdlol.github.io/browser-history-flow-controller/dist/browser-history-flow-controller.js" charset="utf-8"></script> -->
+    <script src="http://localhost:9000/browser-history-flow-controller.js" charset="utf-8"></script>
+    <script src="historypp.js" charset="utf-8"></script>
+    <script type="text/javascript">
+      var historyController = new BrowserHistoryFlowController(history)
+      historyController.url = '/'
+      var history2 = new HistoryPP(historyController)
+
+
+      const l = () => {
+        console.log('pos:', history2.position, 'url:', history2.url, 'len:', history2.length)
+      }
+
+      historyController.addEventListener('backward', ()=>{console.log("Back");l()})
+      historyController.addEventListener('forward', ()=>{console.log("Forward");l()})
+
+      async function main(){
+        for(let i = 0; i < 10; i++){
+          history2.push(i+'/')
+          await delay(500)
+        }
+
+        await delay(1500)
+
+        for(let i = 0; i < 10; i++){
+          history.back()
+          await delay(500)
+        }
+
+        await delay(1500)
+
+        for(let i = 0; i < 10; i++){
+          history.forward()
+          await delay(500)
+        }
+      }
+
+
+      main()
+
+      function delay(ms){
+        return new Promise((resolve, reject) => {
+          setTimeout(resolve, ms)
+        })
+      }
+    </script>
+  </body>
+</html>

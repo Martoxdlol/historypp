@@ -4,12 +4,9 @@ babel.config.js with useful plugins.
 */
 module.exports = function(api) {
   api.cache(true);
-   api.assertVersion("^7.4.5");
+  api.assertVersion("^7.4.5");
 
   const presets = [
-                    ["@babel/preset-react",{
-
-                    }],
                     [
                       "@babel/preset-env", {
                         "targets": {

@@ -39,27 +39,28 @@ class HistoryPlusPlus{
     this.preventBack = false //do nothing on back event
     this.preventExit = false //do nothing when exiting app going back
     this.preventBackList = [] //
-    this._lastPosition = 0
     this.initHistory(options)
   }
 
   initHistory(options){
-    options = {autoRestore: true, ...options}
+    options = {autoRestore: true, ...options,clearPreventBackOnNavigate:false}
     this.options = options
     const initialState = {...this.originalHistory.state}
     if(initialState.initTimestamp && options.autoRestore){
-      try {
-        const prevList = JSON.parse(localStorage.getItem('prev_historypp_list:'+initialState.initTimestamp))
-        const prevListPosition = parseInt(JSON.parse(localStorage.getItem('prev_historypp_position:'+initialState.initTimestamp)))
-        if(Number.isFinite(prevListPosition) && prevListPosition >= 0) this.position = prevListPosition
-        if(Array.isArray(prevList)){
-          console.log("History loaded from localStorage")
-          this.list = prevList
-        }
-      } catch (e) {}
+      this.loadDataFromLocal(initialState.initTimestamp)
+    //   try {
+    //     const prevList = JSON.parse(localStorage.getItem('prev_historypp_list:'+initialState.initTimestamp))
+    //     const prevListPosition = parseInt(JSON.parse(localStorage.getItem('prev_historypp_position:'+initialState.initTimestamp)))
+    //     if(Number.isFinite(prevListPosition) && prevListPosition >= 0) this.position = prevListPosition
+    //     if(Array.isArray(prevList)){
+    //       console.log("History loaded from localStorage")
+    //       this.list = prevList
+    //     }
+    //   } catch (e) {}
     }
     this.initTimestamp = initialState.initTimestamp || Date.now()
     if(!this.position) this.position = 0
+    this._lastPosition = this.position
     this._replace(0)
     this._push(1)
     if(this.list.length == 0) {
@@ -70,24 +71,44 @@ class HistoryPlusPlus{
     }
     window.addEventListener('popstate', event => {
       if(!history.state){
-        console.log(event);
         //Probably hash changed
         const newurlnh = this.getActualUrlNoHash()
         const newurl = this.getActualUrl()
         const newhash = this.getActualHash()
         const lastUrlNHash = this.getActualData().url.split("#")[0]
+        const lastHash = this.getActualData().url.replace(this.getActualData().url.split("#")[0],'')
         this._replace(2)
         this.originalHistory.back()
         if(!this._forwardButtonEnabled) this.disableForwardButton()
-        if(lastUrlNHash == newurlnh){
+
+
+        if(lastUrlNHash == newurlnh && !this.options.hashNavigation){
           //only hash or nothing changed
+          events.launchEvent('hashchange', {lastHash, hash:newhash, type:"hashchange"})
           this.list[this.position].sublist.push({url:newurl})
           this.correctUrlWithRetard()
+        }else if(lastUrlNHash == newurlnh && this.options.hashNavigation){
+          //only hash or nothing changed
+          this._onlyHashChanged = true
+          events.launchEvent('hashchange', {lastHash, hash:newhash, type:"hashchange"})
+          this.position++
+          this._navigate(newurl,{},this.originalHistory.state)
+          this.navEventAuto()
+          this.correctUrlWithRetard()
+        }else{
+          this.position++
+          this._navigate(newurl,{},this.originalHistory.state)
+          this.navEventAuto()
+          this.correctUrlWithRetard()
         }
+
+        this.saveHistoryToLocal()
+
         this._preventEvent = true
         return;
       }else
       if(history.state.initHistory < Date.now()){
+        localStorage.removeItem("prev_historypp_v001_data")
         while(true){
           this.originalHistory.back()
         }
@@ -105,7 +126,7 @@ class HistoryPlusPlus{
         //Usend when will go back to pos 1 but we won't to do anything
 
         //Only do something if back enabled
-        if(!this.preventBack && this.preventBackList.length == 0 && !this._preventEvent && this.list[this.position].sublist.length == 0){
+        if(!this.preventBack && this.preventBackList.length == 0 && !this._preventEvent && (!this.list[this.position] || !this.list[this.position].sublist || this.list[this.position].sublist.length == 0)){
           //Launch back event
           this.position--
           if(this.position <= -1){
@@ -123,6 +144,13 @@ class HistoryPlusPlus{
             //Launch navigation back vitual event
             console.log("VIRTUAL BACK", this.position, this.list[this.position].url);
 
+            //Check if unfordward
+            if(this.list[this.position+1] && this.list[this.position+1].options && (this.list[this.position+1].options.unfordward || this.list[this.position+1].options.onlyOneTime)){
+              this.list.splice(this.position+1,1)
+              this.correctUrl()
+              events.launchEvent('splice',{start:this.position+1,length:1})
+            }
+
             const url = this.list[this.position].url || ""
 
             this.correctUrlWithRetard()
@@ -131,6 +159,8 @@ class HistoryPlusPlus{
             // console.log(url, this.position);
             // this._replace(this.originalHistory.state.pos,url)
           }
+
+          this.saveHistoryToLocal()
         }else if(this.preventBackList.length > 0 && !this._preventEvent){
           //Trigger oneTimePreventback list items
           const action = this.preventBackList[this.preventBackList.length-1]
@@ -143,10 +173,12 @@ class HistoryPlusPlus{
           }
           this.preventBackList.pop()
           // this._disableForwardButton = true
-        }else if(this.list[this.position].sublist.length > 0 && !this._preventEvent){
+          this.saveHistoryToLocal()
+        }else if(this.list[this.position] && this.list[this.position].sublist.length > 0 && !this._preventEvent){
           //Sublist used for internal position navigation with hash
           this.list[this.position].sublist.pop()
           this.correctUrlWithRetard()
+          this.saveHistoryToLocal()
         }
 
         this._preventEvent = false
@@ -156,7 +188,7 @@ class HistoryPlusPlus{
         }else{
           if(this._disableForwardButton){
             this._disableForwardButton = false
-            this._push(1)
+            this._push(1,this.getCorrectUrl())
           }else{
             this.originalHistory.go(1)
           }
@@ -184,7 +216,7 @@ class HistoryPlusPlus{
           this.position--
         }
         console.log("VIRTUAL FORWARD", this.position, this.list[this.position].url);
-        const url = this.list[this.position].url || ""
+        const url = this.getCorrectUrl()
 
         this.correctUrlWithRetard()
         this.navEventAuto()
@@ -195,7 +227,7 @@ class HistoryPlusPlus{
             console.log("DESABLING FORWARD");
             this.disableForwardButton()
           }
-        }, 10);
+        }, 10)
       }
     })
   }
@@ -213,8 +245,15 @@ class HistoryPlusPlus{
     this._forwardButtonEnabled = false
   }
 
-  correctUrl(){
-    let url = this.list[this.position].url || ""
+  getUrl(){
+    return this.getActualData().url
+  }
+
+  getCorrectUrl(){
+    let url = (this.list[this.position] && this.list[this.position].url) || this.getActualUrl() || ''
+    if(this.list[this.position] && this.list[this.position].sublist.length > 0){
+      url = this.list[this.position].sublist[this.list[this.position].sublist.length-1].url
+    }
     let i = this.preventBackList.length-1
     while(i >= 0){
       if(this.preventBackList[i].url){
@@ -223,12 +262,26 @@ class HistoryPlusPlus{
       }
       i--
     }
-    this._replace(this.originalHistory.state.pos,url)
+    return url
+  }
+
+  correctUrl(){
+    this._replace(this.originalHistory.state.pos,this.getCorrectUrl())
   }
 
   correctUrlWithRetard(){
-    setTimeout(() => {
+    clearTimeout(this._timeoutCorrectUrlWithRetard)
+    this._timeoutCorrectUrlWithRetard = setTimeout(() => {
       this.correctUrl()
+      if(this.position == this.list.length-1 && this._forwardButtonEnabled) this.disableForwardButton()
+      //UPDATE DOCUMENT TITLE
+      for(const child of document.head.children){
+          if(child.tagName == 'TITLE'){
+              const t = child.innerHTML
+              document.title = null
+              document.title = t
+          }
+      }
     }, 50)
   }
 
@@ -236,80 +289,56 @@ class HistoryPlusPlus{
     this.list.splice(pos)
   }
 
-  killSubListFrom(pos, i){
-    const ppos = Number.isInteger(i) ? i : this.position
-    let l = this._positionData(ppos).sublist
-    l.splice(pos)
-    this._setPositionData({sublist:l},ppos)
-  }
-
-  _sanitizeUrl(url){
-    if(url === undefined) return url
-    if(url === null) return null
-    if(typeof url != "string") return "/"
-    if(url[0] != "/") return "/"+url
-    return url
+  _completeUrl(url){
+    url = url || ''
+    let turl = this.getUrl() || ''
+    if(turl[0] != "/")turl = "/"+turl
+    const _url = new URL(url, 'http://localhost'+turl)
+    return _url.pathname+_url.search+(_url.hash||'')
   }
 
   navigate(url, options, state){
     this.position++
-    this._navigate(this._sanitizeUrl(url), options, state)
+    this._navigate(this._completeUrl(url), options, state)
     this.navEventAuto()
     this.correctUrlWithRetard()
   }
 
-  subnavigate(url, options, state){
-    this._subnavigate(this._sanitizeUrl(url), options, state)
+  navigateReplace(url, options, state){
+    this.position++
+    this._navigate(this._completeUrl(url), options, state)
+    this._replace(undefined,this._completeUrl(url))
     this.navEventAuto()
     this.correctUrlWithRetard()
+    this.position--
+    this.list.splice(this.position,1)
+    this._lastPosition--
+    events.launchEvent('splice',{start:this.position,length:1,movement:-1})
   }
 
+  navigatePopOnBack(url, options, state){
+    const title = typeof options == 'string' ? options : (options && options.title)
+    options = {title, ...options, onlyOneTime:true}
+    this.navigate(url,options,state)
+  }
 
   _navigate(url, options, state){
-    url = this._sanitizeUrl(url)
-    let title = ""
+    url = this._completeUrl(url)
+    let title = null
     if(typeof options == "string") title = options
     options = {title, ...options}
     this.killListFrom(this.position)
-    const t = this
     this.list.push({
-      sublist: [{
-        timestamp: Date.now(),
-        url,
-        state,
-        isnew: true,
-        options,
-        get title(){
-          return options.title
-        },
-      }],
-      subpos: 0,
-      get url(){
-        return t._url()
-      }
-    })
-    this.saveHistoryToLocal()
-  }
-
-  _subnavigate(url, options, state){
-    url = this._sanitizeUrl(url)
-    let title = ""
-    if(typeof options == "string") title = options
-    options = {title, ...options}
-    this.killSubListFrom(this.position)
-    let d = this._positionData()
-    d.sublist.push({
-      timestamp: Date.now(),
+      sublist: [],
       url,
+      timestamp: Date.now(),
       state,
       isnew: true,
-      options,
       get title(){
         return options.title
       },
+      options,
     })
-    d.subpos++
-    this._setPositionData(d)
     this.saveHistoryToLocal()
   }
 
@@ -325,6 +354,7 @@ class HistoryPlusPlus{
     //use _navEvent to launch it
 
     let movement = this.position - this._lastPosition
+    const hashchange = this._onlyHashChanged
     const data = this.getActualData()
     if(data.isnew){
       this.list[this.position].isnew = false
@@ -334,33 +364,40 @@ class HistoryPlusPlus{
 
     if(movement > 0){
       const type = data.isnew ? 'navigate' : 'forward'
-      events.launchEvent('navigate', {...data, data, movement, type, position: this.position, lastPosition: this._lastPosition, isnew: data.isnew})
-      events.launchEvent('forward', {...data, data, movement, type, position: this.position,  lastPosition: this._lastPosition, isnew: data.isnew})
-      events.launchEvent('locationchanged', {...data, data, movement, type, position: this.position,  lastPosition: this._lastPosition, isnew: data.isnew})
+      events.launchEvent('navigate', {...data, data, hashchange, movement, type, position: this.position, lastPosition: this._lastPosition, isnew: data.isnew})
+      events.launchEvent('forward', {...data, data, hashchange, movement, type, position: this.position,  lastPosition: this._lastPosition, isnew: data.isnew})
+      events.launchEvent('locationchange', {...data, hashchange, data, movement, type, position: this.position,  lastPosition: this._lastPosition, isnew: data.isnew})
+      events.launchEvent('locationchanged', {...data, hashchange, data, movement, type, position: this.position,  lastPosition: this._lastPosition, isnew: data.isnew})
     }else if(movement < 0){
       events.launchEvent('back', {...data, data, movement, type: 'back', position: this.position,  lastPosition: this._lastPosition, isnew: false})
-      events.launchEvent('locationchanged', {...data, data, movement, type: 'back', position: this.position,  lastPosition: this._lastPosition, isnew: false})
+      events.launchEvent('locationchange', {...data, data, hashchange, movement, type: 'back', position: this.position,  lastPosition: this._lastPosition, isnew: false})
+      events.launchEvent('locationchanged', {...data, data, hashchange, movement, type: 'back', position: this.position,  lastPosition: this._lastPosition, isnew: false})
 
     }
 
+    this._onlyHashChanged = false
     this._lastPosition = this.position
 
   }
 
   _push(pos,url,title){
-    url = this._sanitizeUrl(url)
+    url = this._completeUrl(url)
     if(url == undefined){ //necessary for IE
       url = this.getActualUrl()
     }
-    this.originalHistory.pushState({pos,initTimestamp: this.initTimestamp, timestamp: Date.now()},title||'',url)
+    this.originalHistory.pushState({pos,initTimestamp: this.initTimestamp, timestamp: Date.now()},title||null,url)
   }
 
   _replace(pos,url,title){
-    url = this._sanitizeUrl(url)
+    url = this._completeUrl(url)
     if(url == undefined){ //necessary for IE
       url = this.getActualUrl()
     }
-    this.originalHistory.replaceState({pos,initTimestamp: this.initTimestamp, timestamp: Date.now()},title||'',url)
+    this.originalHistory.replaceState({pos,initTimestamp: this.initTimestamp, timestamp: Date.now()},title||null,url)
+  }
+
+  pushReplacement(...args){
+    navigateReplace(...args)
   }
 
   back(){
@@ -368,7 +405,7 @@ class HistoryPlusPlus{
   }
 
   preventBackOnce(callback, url, state){
-    url = this._sanitizeUrl(url)
+    url = this._completeUrl(url)
     const index = this.preventBackList.length
     const id = Date.now()+"_"+index
     this.preventBackList.push({
@@ -379,6 +416,7 @@ class HistoryPlusPlus{
     })
     this.correctUrlWithRetard()
     let cancelled = false
+    events.launchEvent('preventbacklistchanged', {preventBackList: this.preventBackList, type:"preventbacklistchanged"})
     return {
       cancel: ()=>{
         if(cancelled) return;
@@ -386,6 +424,7 @@ class HistoryPlusPlus{
         for(let i = 0; i < this.preventBackList.length; i++){
           if(this.preventBackList[i].id == id){
             this.preventBackList.splice(i,1)
+            events.launchEvent('preventbacklistchanged', {preventBackList: this.preventBackList, type:"preventbacklistchanged"})
             break;
           }
         }
@@ -419,52 +458,43 @@ class HistoryPlusPlus{
   }
 
   saveHistoryToLocal(){
-    localStorage.setItem('prev_historypp_list:'+this.initTimestamp, JSON.stringify(this.list))
-    localStorage.setItem('prev_historypp_position:'+this.initTimestamp, this.position)
+    localStorage.setItem('prev_historypp_v001_data', JSON.stringify({initTimestamp:this.initTimestamp,list:this.list,position:this.position}))
+    // localStorage.setItem('prev_historypp_list:'+this.initTimestamp, JSON.stringify(this.list))
+    // localStorage.setItem('prev_historypp_position:'+this.initTimestamp, this.position)
+    // try {
+    //   const lslist = {...localStorage}
+    //   const keys = Object.keys(lslist)
+    //   for(const key of keys){
+    //     if(key.search("prev_historypp_list:") == 0){
+    //       const t = parseInt(key.replace("prev_historypp_list:"))
+    //       if(!((t+120000) > Date.now()) && t < this.initTimestamp) localStorage.removeItem(key)
+    //     }else
+    //     if(key.search("prev_historypp_position:") == 0){
+    //       const t = parseInt(key.replace("prev_historypp_position:"))
+    //       if(!((t+120000) > Date.now()) && t < this.initTimestamp) localStorage.removeItem(key)
+    //     }
+    //   }
+    // } catch (e) {}
+  }
+
+  loadDataFromLocal(initTimestamp){
     try {
-      const lslist = {...localStorage}
-      const keys = Object.keys(lslist)
-      for(const key of keys){
-        if(key.search("prev_historypp_list:") == 0){
-          const t = parseInt(key.replace("prev_historypp_list:"))
-          if(!((t+120000) > Date.now()) && t < this.initTimestamp) localStorage.removeItem(key)
-        }else
-        if(key.search("prev_historypp_position:") == 0){
-          const t = parseInt(key.replace("prev_historypp_position:"))
-          if(!((t+120000) > Date.now()) && t < this.initTimestamp) localStorage.removeItem(key)
-        }
+      let data = localStorage.getItem('prev_historypp_v001_data')
+      if(!data) return;
+      data = JSON.parse(data)
+      if(data.position && Number.isInteger(data.position) && Array.isArray(data.list) && data.initTimestamp == initTimestamp){
+        this.position = data.position
+        this.list = data.list
+        if(this.position < 0) this.position = 0
+        if(this.position > this.list.length-1) this.position = this.list.length-1
+        console.log("History loaded from localStorage",initTimestamp)
       }
     } catch (e) {}
   }
 
   getActualData(){
-    const d = this._positionData().sublist[this._subpos()]
-    return {...d}
-  }
-
-  //Internal getters
-  _positionData(i){//Get actual position data or i
-    return {...this.list[Number.isInteger(i) ? i : this.position]}
-  }
-
-  _subpos(){
-    return this._positionData()._subpos || 0
-  }
-
-  _url(){
-    const data = this._positionData()
-    const sublist = data.sublist || [{...data}]
-    return sublist[this._subpos()].url || ""
-  }
-
-  _setPositionData(data, i){
-    this.list[Number.isInteger(i) ? i : this.position] = {...this.list[Number.isInteger(i) ? i : this.position], ...data}
-  }
-
-  _setData(d, i, i2){
-    let data = this._positionData(Number.isInteger(i2) ? i : undefined)
-    data.sublist[Number.isInteger(i) ? i : this._subpos()] = {...data.sublist[this._subpos()], ...d}
-    this._setPositionData(data)
+    const d = {...this.list[this.position]}
+    return d
   }
 
   //Getters
@@ -485,7 +515,7 @@ class HistoryPlusPlus{
   }
 
   get url(){
-    return this._url()
+    return this.getActualData().url
   }
 
   get state(){
@@ -493,7 +523,10 @@ class HistoryPlusPlus{
   }
 
   set state(state){
-    return this.list[this.position].state = state
+    const p = this.list[this.position].state
+    this.list[this.position].state = state
+    events.launchEvent('statechanged', {laststate:p, state, type:"statechanged"})
+    return state
   }
 
   on(...args){
@@ -516,15 +549,8 @@ class HistoryPlusPlus{
     this.originalHistory.forward()
   }
 
-  navigateReplace(url, options, state){
-    url = this._sanitizeUrl(url)
-    this._navigate(url, options, state)
-    this.navEventAuto()
-    this.correctUrlWithRetard()
-  }
-
   replaceState(data, options, url){
-    let title = options
+    let title = options || null
     if(typeof options != "string"){
       options = {...options}
       title = options.title
