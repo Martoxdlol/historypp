@@ -7,6 +7,7 @@ class HistoryEvent {
     this.lastPosition = data.lastPosition
     this._position = data.position ?? data.history.position
     this.route = data.history.last
+    this.replaced = data.replaced
   }
 
   get position() {
@@ -15,6 +16,10 @@ class HistoryEvent {
 
   get movement() {
     return this.position - this.lastPosition
+  }
+
+  get last() {
+    return this.history.list[this.lastPosition]
   }
 
   retry() {

@@ -89,7 +89,14 @@ class HistoryPP{
     // if inserted before actual route position should be updated to stay on the same route
     if(pos < this.position) this.position++
     // TODO: Launch event
-    //...
+    const ev = this.makeEvent('insert', { lastPosition, position: this.position, location: new URL(this.current.URL) })
+    const cancelled = this.emit('insert', ev)
+    if(cancelled) {
+      this.list = this.list.filter(elem => elem != route)
+      this.position = lastPosition
+    } else {
+      return route
+    }
   }
 
   replace(pos, routeOrUrl, state, options){
@@ -104,7 +111,11 @@ class HistoryPP{
     //Replace the route on _list
     this._list[pos] = route
     // TODO: Launch event
-    //...
+    const ev = this.makeEvent('replace', { lastPosition, replaced: replacedRoute, position: this.position, location: new URL(this.current.URL) })
+    const cancelled = this.testBlocked('Replace', ev) || this.emit('replace', ev)
+    if(cancelled){
+      this._list[pos] = replacedRoute
+    }
   }
 
   _pop(pos){

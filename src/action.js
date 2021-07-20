@@ -9,7 +9,7 @@ export function typeToAction(type){
         'back': 'Back',
         'push': 'Push',
         'navigate': 'Push',
-        'replace': 'replace',   
+        'replace': 'Replace',   
         'pop': 'Pop',
     }
     return t[type.toLowerCase()]
