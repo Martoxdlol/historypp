@@ -56,7 +56,7 @@ export default function handleEventsListeners(historyController) {
 
     this._push(event.url, state, options)
     // TODO: launch event
-    const ev = this.makeEvent('push', { lastPosition, position: this.position, location: event.location, setState })
+    const ev = this.makeEvent('push', { lastPosition, position: this.position, location: event.location, setState, isNewRoute: true })
     const cancelled = this.testBlocked('Push', ev) || this.emit('push', ev)
 
     if (!cancelled) historyController.disableForwardButton()

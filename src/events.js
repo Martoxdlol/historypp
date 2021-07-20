@@ -8,6 +8,7 @@ class HistoryEvent {
     this._position = data.position ?? data.history.position
     this.route = data.history.last
     this.replaced = data.replaced
+    this.isNewRoute = !!data.isNewRoute
   }
 
   get position() {
