@@ -1,35 +1,37 @@
-export default function handleEventsListeners(historyController){
+import Action from './action'
+
+export default function handleEventsListeners(historyController) {
 
   historyController.addEventListener('backward', event => {
     //save last position for the event
     const lastPosition = this.position
-    if(this.position == 0){
+    if (this.position == 0) {
       //launch exit event, (ask user if he sure)
       // TODO: launch event
-      const cancelled = this.launchEvent('exit', {lastPosition})
-      if(!cancelled) historyController.exit()
-    }else{
+      const cancelled = this.testBlocked('Exit', event) || this.launchEvent('exit', { lastPosition })
+      if (!cancelled) historyController.exit()
+    } else {
       this.position--
       // TODO: launch event
-      const cancelled = this.launchEvent('backward', {lastPosition})
-      if(cancelled) this.position = lastPosition
+      const cancelled = this.testBlocked('Back', event) || this.launchEvent('backward', { lastPosition })
+      if (cancelled) this.position = lastPosition
     }
     //Set url
     historyController.url = this.url
   })
 
   historyController.addEventListener('forward', event => {
-    if(this.current.position < this.last.position){
+    if (this.current.position < this.last.position) {
       //save last position for the event
       const lastPosition = this.position
       this.position++
       // TODO: launch event
-      const cancelled = this.launchEvent('forward', {lastPosition})
+      const cancelled = this.testBlocked('Forward', event) || this.launchEvent('forward', { lastPosition })
       //if event cancelled -> this.position = lastPosition
-      if(!cancelled) historyController.url = this.current.url
+      if (!cancelled) historyController.url = this.current.url
       else this.position = lastPosition
     }
-    if(this.current == this.last) historyController.disableForwardButton()
+    if (this.current == this.last) historyController.disableForwardButton()
     //Set url
     historyController.url = this.url
   })
@@ -49,8 +51,8 @@ export default function handleEventsListeners(historyController){
 
     this._push(event.url, state, options)
     // TODO: launch event
-    const cancelled = this.launchEvent('push', {lastPosition, setState})
-    if(!cancelled) historyController.disableForwardButton()
+    const cancelled = this.testBlocked('Push', event) || this.launchEvent('push', { lastPosition, setState })
+    if (!cancelled) historyController.disableForwardButton()
     else {
       this._pop()
       this.position = lastPosition

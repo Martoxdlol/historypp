@@ -1,6 +1,8 @@
 import Route from './route'
 import handleEvents from './handlers'
 import makeEmitter from './emitter'
+import handleBlocks from './blocker'
+import Action from './action'
 
 class HistoryPP{
   constructor(historyController){
@@ -10,10 +12,17 @@ class HistoryPP{
     //Is like an extension of constructor
     handleEvents.bind(this)(historyController)
 
+    //Handle bloack
+    handleBlocks.bind(this)()
+
     //add event emitter and add methods
     makeEmitter(this)
 
     this._push(location.href)
+
+    //Block location change
+    this.blockedList = []
+    this.blockedBackList = []
   }
 
   _getRoute(routeOrUrl, state){
@@ -153,6 +162,10 @@ class HistoryPP{
   get last(){
     return this._list[this._list.length - 1]
   }
+
+  get blocked(){
+    return !!this.blockedList.length
+  }
 }
 
 if(typeof window != 'undefined'){
@@ -160,3 +173,4 @@ if(typeof window != 'undefined'){
 }
 
 export default HistoryPP
+export { Action }

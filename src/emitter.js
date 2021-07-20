@@ -20,7 +20,7 @@ class EventEmitter{
     let stopPropagation
     let cancelled = false
     for(const cb of this.eventHandlers[name]){
-      event = args[0]
+      const event = args[0]
       event.setCancelled = set => {
         cancelled = !!set
       }
@@ -43,9 +43,12 @@ class EventEmitter{
     const position = data.position || this.position
     //Event type
     const type = data.type || name
-
+    //Give event access to this instance
+    const history = this
+    //Action compatible with npm 'history' package
+    const action = ''
     //create event
-    const event = new HistoryEvent({...data, position})
+    const event = new HistoryEvent({...data, history, position})
     //Emit event
     return this.emit(name, event)
   }
