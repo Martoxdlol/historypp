@@ -28,12 +28,27 @@
 
       const l = () => {
         console.log('pos:', history2.position, 'url:', history2.url, 'len:', history2.length)
+        document.getElementsByTagName('h1')[0].innerText = history2.list.map(el => {
+          return (history2.current == el ? '> ' : '')+el.url
+        }).join('\n')
       }
 
-      historyController.addEventListener('backward', ()=>{console.log("Back");l()})
-      historyController.addEventListener('forward', ()=>{console.log("Forward");l()})
+      history2.addEventListener('back', e=>{
+        console.log("Back");l()})
+      history2.addEventListener('push', ()=>{console.log("Push");l()})
+      history2.addEventListener('forward', ()=>{console.log("Forward");l()})
+
+      historyController.addEventListener('exit', e=>{
+        e.cancel()
+      })
 
       async function main(){
+        const unblock = history2.block(e => {
+          console.log(e)
+          unblock()
+          e.retry()
+        })
+
         for(let i = 0; i < 10; i++){
           history2.push(i+'/')
           await delay(500)

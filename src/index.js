@@ -59,8 +59,11 @@ class HistoryPP{
     //push route
     this._push(routeOrUrl, state, options)
     // TODO: Launch event
-    //...
-    this.historyController.url = this.current.url
+    const ev = this.makeEvent('push', { lastPosition, position: this.position, location: new URL(this.current.URL) })
+    const cancelled = this.testBlocked('Push', ev) || this.emit('push', ev)
+    if(!cancelled)
+      this.historyController.url = this.current.url
+    else this._pop(this.last.position)
   }
 
   insert(pos, routeOrUrl, state, options){
@@ -142,6 +145,10 @@ class HistoryPP{
     if(pos > max) throw new TypeError('Position is bigger than max')
   }
 
+  get current(){
+    return this._list[this.position]
+  }
+  
   get url(){
     if(!this.current) return location.href
     return this.current.url
@@ -153,10 +160,6 @@ class HistoryPP{
 
   get length(){
     return this._list.length
-  }
-
-  get current(){
-    return this._list[this.position]
   }
 
   get last(){
