@@ -4,8 +4,8 @@ import makeEmitter from './emitter'
 import handleBlocks from './blocker'
 import Action from './action'
 
-class HistoryPP{
-  constructor(historyController){
+class HistoryPP {
+  constructor(historyController) {
     this.historyController = historyController
     this._list = []
     //this function could be done inside constructor but I prefer to extend it to a separate file
@@ -25,24 +25,24 @@ class HistoryPP{
     this.blockedBackList = []
   }
 
-  _getRoute(routeOrUrl, state){
+  _getRoute(routeOrUrl, state) {
     //it can receive a route object or url
     let route
-    if(routeOrUrl instanceof Route){
+    if (routeOrUrl instanceof Route) {
       //if received a url object no problem
       route = routeOrUrl
-      if(state != undefined){
+      if (state != undefined) {
         //if also received a state, the route state will be replaced
         route.state = state
       }
-    }else{
+    } else {
       //if received a url create new route with that url and state (state can be undefined)
       route = new Route(routeOrUrl.toString(), state)
     }
     return route
   }
 
-  _push(routeOrUrl, state, options){
+  _push(routeOrUrl, state, options) {
     //Get route from input, (input can be url or route object)
     const route = this._getRoute(routeOrUrl, state, options)
     //Mount route, (give access of history to route. It's usefull for things like position)
@@ -53,7 +53,7 @@ class HistoryPP{
     this.position = route.position
   }
 
-  async push(routeOrUrl, state, options){
+  async push(routeOrUrl, state, options) {
     //Save position for the event
     const lastPosition = this.position
     //push route
@@ -61,12 +61,12 @@ class HistoryPP{
     // TODO: Launch event
     const ev = this.makeEvent('push', { lastPosition, position: this.position, location: new URL(this.current.URL) })
     const cancelled = this.testBlocked('Push', ev) || this.emit('push', ev)
-    if(!cancelled)
+    if (!cancelled)
       this.historyController.url = this.current.url
     else this._pop(this.last.position)
   }
 
-  insert(pos, routeOrUrl, state, options){
+  insert(pos, routeOrUrl, state, options) {
     //Verify position
     HistoryPP._verifyPos(pos, this.length - 1)
     //Get route from input
@@ -77,7 +77,7 @@ class HistoryPP{
     //Base url to generate route url is taken from previous element from pos if exist
     let baseUrl = this.url
     //Previos element is now the last element on _list
-    if(this.last) baseUrl = this.last.url
+    if (this.last) baseUrl = this.last.url
     //Mount route
     route.mount(this, baseUrl)
     //Add route to cutted list
@@ -87,11 +87,11 @@ class HistoryPP{
     //save last position for the event
     const lastPosition = this.position
     // if inserted before actual route position should be updated to stay on the same route
-    if(pos < this.position) this.position++
+    if (pos < this.position) this.position++
     // TODO: Launch event
     const ev = this.makeEvent('insert', { lastPosition, position: this.position, location: new URL(this.current.URL) })
     const cancelled = this.emit('insert', ev)
-    if(cancelled) {
+    if (cancelled) {
       this.list = this.list.filter(elem => elem != route)
       this.position = lastPosition
     } else {
@@ -99,7 +99,7 @@ class HistoryPP{
     }
   }
 
-  replace(pos, routeOrUrl, state, options){
+  replace(pos, routeOrUrl, state, options) {
     //Verify position
     HistoryPP._verifyPos(pos, this.length - 1)
     //Get route from input
@@ -113,16 +113,16 @@ class HistoryPP{
     // TODO: Launch event
     const ev = this.makeEvent('replace', { lastPosition, replaced: replacedRoute, position: this.position, location: new URL(this.current.URL) })
     const cancelled = this.testBlocked('Replace', ev) || this.emit('replace', ev)
-    if(cancelled){
+    if (cancelled) {
       this._list[pos] = replacedRoute
     }
   }
 
-  _pop(pos){
+  _pop(pos) {
     //Verify position
     HistoryPP._verifyPos(pos, this.length - 1)
     //Check length
-    if(this.length <= 1) throw new TypeError('History list cannot be empty')
+    if (this.length <= 1) throw new TypeError('History list cannot be empty')
     //Save removed route
     const removedRoute = this._list[pos]
     //Remove route from _list
@@ -131,18 +131,18 @@ class HistoryPP{
     return removedRoute
   }
 
-  pop(pos){
-    if(!pos) pos = this.last.position
+  pop(pos) {
+    if (!pos) pos = this.last.position
     //Save position for the event
     const lastPosition = this.position
     //do the pop
     const removedRoute = this._pop(pos)
     // TODO: Launch event
     //...
-    if(pos == this.position){
+    if (pos == this.position) {
       this.position--
       // TODO: Launch change event
-    }else if(pos < this.position){
+    } else if (pos < this.position) {
       this.position--
     }
     this.historyController.url = this.url
@@ -150,39 +150,39 @@ class HistoryPP{
     return removedRoute
   }
 
-  static _verifyPos(pos, max){
-    if(!Number.isInteger(pos)) throw new TypeError('Position isn\'t a integer')
-    if(pos < 0) throw new TypeError('Position is lower than 0')
-    if(pos > max) throw new TypeError('Position is bigger than max')
+  static _verifyPos(pos, max) {
+    if (!Number.isInteger(pos)) throw new TypeError('Position isn\'t a integer')
+    if (pos < 0) throw new TypeError('Position is lower than 0')
+    if (pos > max) throw new TypeError('Position is bigger than max')
   }
 
-  get current(){
+  get current() {
     return this._list[this.position]
   }
-  
-  get url(){
-    if(!this.current) return location.href
+
+  get url() {
+    if (!this.current) return location.href
     return this.current.url
   }
 
-  get list(){
+  get list() {
     return this._list
   }
 
-  get length(){
+  get length() {
     return this._list.length
   }
 
-  get last(){
+  get last() {
     return this._list[this._list.length - 1]
   }
 
-  get blocked(){
+  get blocked() {
     return !!this.blockedList.length
   }
 }
 
-if(typeof window != 'undefined'){
+if (typeof window != 'undefined') {
   window.HistoryPP = HistoryPP
 }
 

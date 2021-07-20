@@ -1,46 +1,46 @@
 import Action, { typeToAction } from './action'
 import { HistoryEvent } from './events'
 
-class EventEmitter{
-  constructor(){
+class EventEmitter {
+  constructor() {
     this.eventHandlers = {}
   }
 
-  on(name, handler){
+  on(name, handler) {
     return this.addEventListener(name, handler)
   }
 
-  addEventListener(name, handler){
-    if(!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
+  addEventListener(name, handler) {
+    if (!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
     this.eventHandlers[name].add(handler)
     return () => {
       this.removeEventListener(name, handler)
     }
   }
 
-  removeEventListener(name, handler){
-    if(!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
+  removeEventListener(name, handler) {
+    if (!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
     this.eventHandlers[name].delete(handler)
   }
 
-  listen(handler){
+  listen(handler) {
     this.addEventListener('listen', handler)
     return () => {
       this.removeEventListener('listen', handler)
     }
   }
 
-  emit(name, ...args){
-    if(!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
-    if(!this.eventHandlers['listen']) this.eventHandlers['listen'] = new Set()
+  emit(name, ...args) {
+    if (!this.eventHandlers[name]) this.eventHandlers[name] = new Set()
+    if (!this.eventHandlers['listen']) this.eventHandlers['listen'] = new Set()
     let stopPropagation
     let cancelled = false
     const event = args[0]
     //listen event triggers on any event
-    for(const cb of this.eventHandlers['listen']){
+    for (const cb of this.eventHandlers['listen']) {
       cb(event)
     }
-    for(const cb of this.eventHandlers[name]){
+    for (const cb of this.eventHandlers[name]) {
       event.setCancelled = set => {
         cancelled = !!set
       }
@@ -55,12 +55,12 @@ class EventEmitter{
         return cancelled
       })
       cb.apply(this, args)
-      if(stopPropagation) break
+      if (stopPropagation) break
     }
     return cancelled
   }
 
-  makeEvent(name, data){
+  makeEvent(name, data) {
     // Get event values
     // new/actual position
     const position = data.position || this.position
@@ -71,17 +71,17 @@ class EventEmitter{
     //Action compatible with npm 'history' package
     const action = Action[typeToAction(type)]
     //create event
-    const event = new HistoryEvent({...data, history, position, type, action})
+    const event = new HistoryEvent({ ...data, history, position, type, action })
     return event
   }
 
-  launchEvent(name, data){
+  launchEvent(name, data) {
     //Emit event
     return this.emit(name, makeEvent(name, data))
   }
 }
 
-export default function makeEmitter(instance){
+export default function makeEmitter(instance) {
   //this function adds events emitting capabilities to any object/instance
   const emitter = new EventEmitter()
   emitter.history = instance
