@@ -25,11 +25,14 @@
 * `history.pathname` route url pathname
 * `history.search` actual route url search
 * `history.hash` actual route url hash
-
+* `history.listen(callback)` listen all
+* `history.addEventListener(name, callback)` listen 
+* `history.removeEventListener(name, callback)` remove listener
 
 ## Event
 
-* `event.action` navigate | push | forward | backward | insert | pop | replace
+* `event.action` POP | PUSH | REPLACE (for compatibility with npm 'history' package)
+* `event.type` navigate | push | forward | backward | insert | pop | replace
 * `event.movement` route position difference (only on push or navigate events)
 * `event.position` actual position or affected position (like pop event)
 * `event.lastPosition` previos position  (only on push or navigate events)
@@ -42,7 +45,7 @@
 
 ## Events
 
-`locationchange`
+`listen` triggers on all events
 `replace`
 `pop`
 `push`
